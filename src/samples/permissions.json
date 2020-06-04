@@ -1,0 +1,21 @@
+{
+  "role" : "stalker",
+  "description" : "View only access to assets, metrics and messages",
+  "permissions" : [ 
+    {"url": "/api/current", "method": "GET", "tag": "getCurrent"},
+    {"url": "/api/login", "method": "POST", "tag": "login"},
+    {"url": "/api/assets", "method": "GET", "tag": "getAssets"},
+    {"url": "/api/metrics", "method": "GET", "tag": "getMetrics"}
+  ]
+}
+{
+    "role" : "administrator",
+    "description" : "Full read/write access to all assets, metrics, users and messages",
+    "permissions" : [ 
+      {"url": "/api/current", "method": "GET", "tag": "getCurrent"},
+      {"url": "/api/current", "method": "PUT", "tag": "putCurrent"},
+      {"url": "/api/login", "method": "POST", "tag": "login"},
+      {"url": "/api/assets", "method": "GET", "tag": "getAssets"},
+      {"url": "/api/metrics", "method": "GET", "tag": "getMetrics"}
+    ]
+  }
