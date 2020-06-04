@@ -1,0 +1,69 @@
+services:
+  - docker:dind
+
+stages:
+  # - depends
+  - test
+  - build
+  - deploy
+
+variables:
+  CONTAINER_IMAGE: matzpersson/fleetmetrics-api:${CI_COMMIT_SHORT_SHA}
+  CONTAINER_LATEST: matzpersson/fleetmetrics-api:latest
+  NAMESPACE: fleetmetrics-prod
+
+# cache:
+#   paths:
+#     - node_modules/
+
+# install_dependencies:
+#   stage: depends
+#   script:
+#     - npm install
+#   artifacts:
+#     paths:
+#       - node_modules/
+
+test:
+  stage: test
+  image: node:latest
+  script:
+    - npm install
+    - npm test
+
+build:
+  stage: build
+  image: docker:latest
+  script:
+    - docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+    - docker build -t ${CONTAINER_IMAGE} .
+    - docker tag ${CONTAINER_IMAGE} ${CONTAINER_IMAGE}
+    - docker tag ${CONTAINER_IMAGE} ${CONTAINER_LATEST}
+    - docker push ${CONTAINER_IMAGE}
+
+deploy:
+  stage: deploy
+  image: dtzar/helm-kubectl
+  script:
+    - kubectl config set-cluster k8s --server="${SERVER}"
+    - kubectl config set clusters.k8s.certificate-authority-data ${CERTIFICATE_AUTHORITY_DATA}
+    - kubectl config set-credentials gitlab --token="${USER_TOKEN}"
+    - kubectl config set-context ${NAMESPACE} --cluster=k8s --user=gitlab
+    - kubectl config use-context ${NAMESPACE}
+    - sed -i "s/<VERSION>/${CI_COMMIT_SHORT_SHA}/g" deployment.yaml
+    - sed -i "s/<MONGO_PORT>/${MONGO_PORT}/g" deployment.yaml
+    - sed -i "s/<MONGO_SERVER>/${MONGO_SERVER}/g" deployment.yaml
+    - sed -i "s/<MONGO_DATABASE>/${MONGO_DATABASE}/g" deployment.yaml
+    - sed -i "s/<API_PORT>/${API_PORT}/g" deployment.yaml
+    - sed -i "s/<LOGIN_SECRET>/${LOGIN_SECRET}/g" deployment.yaml
+    - sed -i "s/<SMTP_HOST>/${SMTP_HOST}/g" deployment.yaml
+    - sed -i "s/<SMTP_UID>/${SMTP_UID}/g" deployment.yaml
+    - sed -i "s/<SMTP_PWD>/${SMTP_PWD}/g" deployment.yaml
+    - sed -i "s/<MQTT_PORT>/${MQTT_PORT}/g" deployment.yaml
+    - kubectl apply -f deployment.yaml -n ${NAMESPACE}
+  environment:
+    name: production
+    url: https://time.headstation.com
+  only:
+  - master
+  
